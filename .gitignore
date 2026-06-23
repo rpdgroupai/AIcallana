@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 models/whisper-medium/model.bin
 models/whisper-medium/.cache/
+agent_keys.json
