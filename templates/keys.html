@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CallBridge — API Keys</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f12;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+    .container { max-width: 640px; margin: 0 auto; }
+    .header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 28px;
+    }
+    .logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    h1 { font-size: 20px; font-weight: 700; color: #fff; }
+    .sub { font-size: 12px; color: #555; margin-top: 2px; }
+
+    .card {
+      background: #17171d;
+      border: 1px solid #1e1e28;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      color: #6366f1; margin-bottom: 16px;
+    }
+    label {
+      font-size: 11px; color: #666;
+      display: block; margin-bottom: 4px;
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    input, select {
+      width: 100%;
+      background: #0f0f12;
+      border: 1px solid #2a2a35;
+      border-radius: 7px;
+      color: #e0e0e0;
+      font-size: 13px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: #6366f1; }
+    input::placeholder { color: #333; }
+    select option { background: #17171d; }
+
+    .btn {
+      width: 100%; padding: 11px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white; border: none; border-radius: 7px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.88; }
+
+    .status {
+      font-size: 12px; padding: 8px 12px;
+      border-radius: 6px; margin-top: 10px;
+      display: none;
+    }
+    .status.ok  { background: #0d2818; color: #4ade80; display: block; }
+    .status.err { background: #2a0f0f; color: #f87171; display: block; }
+
+    /* Agent list */
+    .agent-row {
+      display: flex; align-items: center;
+      gap: 10px; padding: 10px 14px;
+      border-bottom: 1px solid #1a1a22;
+    }
+    .agent-row:last-child { border-bottom: none; }
+    .agent-name {
+      font-size: 13px; font-weight: 600;
+      color: #a78bfa; flex: 1;
+    }
+    .key-info { font-size: 11px; color: #555; flex: 2; }
+    .key-info span { color: #3a3a50; }
+    .del-btn {
+      background: none; border: 1px solid #2a2a35;
+      color: #555; border-radius: 5px;
+      padding: 4px 8px; font-size: 11px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .del-btn:hover { border-color: #f87171; color: #f87171; }
+    .empty {
+      text-align: center; color: #333;
+      font-size: 12px; padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <div class="logo">📞</div>
+      <div>
+        <h1>Agent API Keys</h1>
+        <div class="sub">Manage per-agent AI provider keys</div>
+      </div>
+    </div>
+
+    <!-- Add / Update key -->
+    <div class="card">
+      <div class="card-title">Add or Update Agent Key</div>
+
+      <label>Agent Name</label>
+      <input id="agentInput" placeholder="e.g. Sonali" autocomplete="off" />
+
+      <label>Gemini API Key</label>
+      <input id="geminiInput" placeholder="AIza..." autocomplete="off" />
+
+      <label>Sarvam API Key (optional)</label>
+      <input id="sarvamInput" placeholder="Leave blank if not using Sarvam" autocomplete="off" />
+
+      <button class="btn" onclick="saveKey()">Save Key</button>
+      <div id="saveStatus" class="status"></div>
+    </div>
+
+    <!-- Saved agents list -->
+    <div class="card">
+      <div class="card-title">Saved Agents</div>
+      <div id="agentList"><div class="empty">Loading...</div></div>
+    </div>
+
+  </div>
+
+  <script>
+    async function loadAgents() {
+      const res = await fetch('/api/agent-keys')
+      const data = await res.json()
+      const list = document.getElementById('agentList')
+      const agents = Object.entries(data)
+      if (!agents.length) {
+        list.innerHTML = '<div class="empty">No agents configured yet</div>'
+        return
+      }
+      list.innerHTML = agents.map(([name, keys]) => `
+        <div class="agent-row">
+          <div class="agent-name">${name}</div>
+          <div class="key-info">
+            Gemini: <span>${keys.gemini ? keys.gemini.slice(0,8) + '••••••••' : '—'}</span><br>
+            Sarvam: <span>${keys.sarvam ? keys.sarvam.slice(0,8) + '••••••••' : '—'}</span>
+          </div>
+          <button class="del-btn" onclick="deleteAgent('${name}')">✕ Remove</button>
+        </div>
+      `).join('')
+    }
+
+    async function saveKey() {
+      const agent  = document.getElementById('agentInput').value.trim()
+      const gemini = document.getElementById('geminiInput').value.trim()
+      const sarvam = document.getElementById('sarvamInput').value.trim()
+      const st = document.getElementById('saveStatus')
+
+      if (!agent || !gemini) {
+        st.textContent = 'Agent name and Gemini key are required'
+        st.className = 'status err'
+        return
+      }
+
+      const res = await fetch('/api/agent-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent, gemini, sarvam })
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        st.textContent = `✓ Key saved for ${agent}`
+        st.className = 'status ok'
+        document.getElementById('agentInput').value = ''
+        document.getElementById('geminiInput').value = ''
+        document.getElementById('sarvamInput').value = ''
+        loadAgents()
+      } else {
+        st.textContent = data.error || 'Failed to save'
+        st.className = 'status err'
+      }
+    }
+
+    async function deleteAgent(name) {
+      if (!confirm(`Remove keys for ${name}?`)) return
+      await fetch(`/api/agent-keys/${name}`, { method: 'DELETE' })
+      loadAgents()
+    }
+
+    // Allow Enter key on inputs
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveKey()
+    })
+
+    loadAgents()
+  </script>
+</body>
+</html>

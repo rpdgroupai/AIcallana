@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call Analyzer — AI-Powered Call Intelligence</title>
+    <meta name="description" content="Upload call recordings and get instant AI-powered transcription and analysis with structured insights, sentiment detection, and action items.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body data-agent-id="{{ agent_id or '' }}">
+    <script>
+        // If loaded via /agent/ route, suppress API key modal
+        const agentId = document.body.dataset.agentId
+        if (agentId) {
+            // Hide settings/key button
+            window.addEventListener('DOMContentLoaded', () => {
+                const settingsBtn = document.getElementById('settings-btn')
+                if (settingsBtn) settingsBtn.style.display = 'none'
+            });
+        }
+    </script>
+
+
+    <!-- Animated background -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="header-inner">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                </div>
+                <span class="logo-text">CallAnalyzer<span class="logo-ai">AI</span></span>
+            </div>
+            <div class="header-actions">
+                <div class="header-badge">
+                    <span class="badge-dot"></span>
+                    Gemini 2.5 Flash
+                </div>
+                <button class="settings-btn" id="settings-btn" title="Configure API Key">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-content">
+            <div class="hero-tag">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
+                AI-Powered Call Intelligence
+            </div>
+            <h1 class="hero-title">
+                Turn every call into<br>
+                <span class="gradient-text">actionable insights</span>
+            </h1>
+            <p class="hero-subtitle">
+                Upload a call recording. Get an instant AI-generated transcript and a structured 
+                intelligence report — sentiment, decisions, red alerts, action items, and more.
+            </p>
+        </div>
+    </section>
+
+    <!-- Pipeline Steps Indicator -->
+    <section class="pipeline-section" id="pipeline-section">
+        <div class="pipeline-steps">
+            <div class="pipeline-step active" id="step-upload">
+                <div class="step-number">1</div>
+                <div class="step-info">
+                    <div class="step-label">Upload</div>
+                    <div class="step-desc">Choose audio file</div>
+                </div>
+            </div>
+            <div class="pipeline-connector" id="connector-1"></div>
+            <div class="pipeline-step" id="step-transcribe">
+                <div class="step-number">2</div>
+                <div class="step-info">
+                    <div class="step-label">Process</div>
+                    <div class="step-desc">Gemini AI</div>
+                </div>
+            </div>
+            <div class="pipeline-connector" id="connector-2"></div>
+            <div class="pipeline-step" id="step-report">
+                <div class="step-number">3</div>
+                <div class="step-info">
+                    <div class="step-label">Report</div>
+                    <div class="step-desc">Intelligence dashboard</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upload Section -->
+    <section class="upload-section" id="upload-section">
+        <div class="upload-card" id="upload-card">
+            <div class="dropzone" id="dropzone">
+                <div class="dropzone-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </div>
+                <h3 class="dropzone-title">Drop your audio file here</h3>
+                <p class="dropzone-hint">or click to browse • MP3, WAV, OGG, FLAC, M4A, WebM up to 100MB</p>
+                <input type="file" id="file-input" accept=".mp3,.wav,.ogg,.flac,.webm,.m4a,.aac,.wma" hidden>
+            </div>
+
+            <!-- File Preview -->
+            <div class="file-preview hidden" id="file-preview">
+                <div class="file-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 18V5l12-2v13"/>
+                        <circle cx="6" cy="18" r="3"/>
+                        <circle cx="18" cy="16" r="3"/>
+                    </svg>
+                </div>
+                <div class="file-details">
+                    <span class="file-name" id="file-name">audio.mp3</span>
+                    <span class="file-size" id="file-size">2.4 MB</span>
+                </div>
+                <button class="file-remove" id="file-remove" title="Remove file">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <!-- Model Selection dropdown -->
+            <div class="model-select-container">
+                <label for="model-select" class="model-select-label">Transcription Model</label>
+                <div class="model-select-wrapper">
+                    <select id="model-select" class="model-select">
+                        <option value="gemini">Google Gemini 2.5 Flash</option>
+                        <option value="sarvam">Sarvam AI (Saaras v3)</option>
+                        <option value="speechmatics">Speechmatics (Enhanced)</option>
+                    </select>
+
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <button class="generate-btn" id="generate-btn" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/>
+                </svg>
+                Generate Report
+            </button>
+        </div>
+    </section>
+
+    <!-- Processing Overlay -->
+    <section class="processing-section hidden" id="processing-section">
+        <div class="processing-card">
+            <div class="processing-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring inner"></div>
+            </div>
+            <h3 class="processing-title" id="processing-title">Sending to Gemini...</h3>
+            <p class="processing-desc" id="processing-desc">Uploading file and transcribing audio using Gemini AI. This may take 10–60 seconds depending on length.</p>
+            <div class="processing-progress">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Error Display -->
+    <section class="error-section hidden" id="error-section">
+        <div class="error-card">
+            <div class="error-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+            </div>
+            <h3 class="error-title">Something went wrong</h3>
+            <p class="error-message" id="error-message">An unknown error occurred.</p>
+            <button class="retry-btn" id="retry-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                Try Again
+            </button>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section hidden" id="results-section">
+
+        <!-- Transcript Panel -->
+        <div class="result-panel transcript-panel" id="transcript-panel">
+            <div class="panel-header">
+                <div class="panel-title-group">
+                    <div class="panel-icon transcript-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </div>
+                    <h2 class="panel-title">Transcript</h2>
+                    <span class="panel-badge" id="transcript-badge">Gemini 2.5 Flash</span>
+                </div>
+                <button class="copy-btn" id="copy-transcript-btn" title="Copy transcript">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Copy
+                </button>
+            </div>
+            <div class="panel-body">
+                <div class="transcript-text" id="transcript-text"></div>
+            </div>
+        </div>
+
+        <!-- Report Panel -->
+        <div class="result-panel report-panel" id="report-panel">
+            <div class="panel-header">
+                <div class="panel-title-group">
+                    <div class="panel-icon report-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    </div>
+                    <h2 class="panel-title">Call Intelligence Report</h2>
+                    <span class="panel-badge report-badge">Gemini AI</span>
+                </div>
+                <button class="copy-btn" id="copy-report-btn" title="Copy report JSON">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Copy JSON
+                </button>
+            </div>
+            <div class="panel-body report-body" id="report-body">
+                <!-- Report cards rendered by JS -->
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Settings Modal -->
+    <div id="apiKeyModal" class="modal hidden">
+      <div class="modal-overlay" id="modal-overlay-new" onclick="closeApiKeyModal()"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Configure API Keys</h2>
+          <button class="close-btn" onclick="closeApiKeyModal()">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <!-- Agent Name Select Dropdown -->
+          <div class="form-group">
+            <label for="agentSelect">Select Agent Name</label>
+            <select id="agentSelect" onchange="loadAgentKeys()">
+              <option value="">-- Choose an agent --</option>
+            </select>
+            <small style="color: #888; display: block; margin-top: 4px;">Or type new agent name below</small>
+          </div>
+
+          <!-- Manual Agent Name Input (for new agents) -->
+          <div class="form-group">
+            <label for="agentNameInput">Agent Name (if not in list above)</label>
+            <input 
+              id="agentNameInput" 
+              type="text" 
+              placeholder="e.g. Sonali, Kalyani, Anant"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Gemini API Key -->
+          <div class="form-group">
+            <label for="geminiKeyInput">Gemini API Key *</label>
+            <div class="key-input-group">
+              <input 
+                id="geminiKeyInput" 
+                type="password" 
+                placeholder="AIza..."
+                autocomplete="off"
+              />
+              <button type="button" class="toggle-btn" onclick="toggleKeyVisibility('geminiKeyInput')">
+                👁
+              </button>
+            </div>
+          </div>
+
+          <!-- Sarvam AI API Key -->
+          <div class="form-group">
+            <label for="sarvamKeyInput">Sarvam AI API Key (optional)</label>
+            <div class="key-input-group">
+              <input 
+                id="sarvamKeyInput" 
+                type="password" 
+                placeholder="sk_..."
+                autocomplete="off"
+              />
+              <button type="button" class="toggle-btn" onclick="toggleKeyVisibility('sarvamKeyInput')">
+                👁
+              </button>
+            </div>
+          </div>
+
+          <!-- Speechmatics API Key -->
+          <div class="form-group">
+            <label for="speechmaticsKeyInput">Speechmatics API Key (optional)</label>
+            <div class="key-input-group">
+              <input 
+                id="speechmaticsKeyInput" 
+                type="password" 
+                placeholder="Speechmatics API Key..."
+                autocomplete="off"
+              />
+              <button type="button" class="toggle-btn" onclick="toggleKeyVisibility('speechmaticsKeyInput')">
+                👁
+              </button>
+            </div>
+          </div>
+
+          <small style="color: #999; display: block; margin-top: 10px;">
+            * Gemini API Key is required. Other keys are optional based on your transcription model choice.
+          </small>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeApiKeyModal()">Cancel</button>
+          <button class="btn-save" onclick="saveApiKeys()">Save Keys</button>
+        </div>
+      </div>
+    </div>
+
+    <style>
+    /* Modal Styles override/extensions */
+    #apiKeyModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #apiKeyModal.hidden {
+      display: none;
+    }
+
+    #apiKeyModal:not(.hidden) {
+      display: flex;
+    }
+
+    #apiKeyModal .modal-content {
+      background: #1a1a1f;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      border: 1px solid #2a2a35;
+    }
+
+    #apiKeyModal .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #2a2a35;
+    }
+
+    #apiKeyModal .modal-header h2 {
+      margin: 0;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    #apiKeyModal .close-btn {
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    #apiKeyModal .close-btn:hover {
+      background: #2a2a35;
+      color: #fff;
+    }
+
+    #apiKeyModal .modal-body {
+      padding: 20px;
+    }
+
+    #apiKeyModal .modal-footer {
+      display: flex;
+      gap: 12px;
+      padding: 20px;
+      border-top: 1px solid #2a2a35;
+      justify-content: flex-end;
+    }
+
+    #apiKeyModal .form-group {
+      margin-bottom: 16px;
+    }
+
+    #apiKeyModal .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #apiKeyModal .form-group input,
+    #apiKeyModal .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      background: #0f0f12;
+      border: 1px solid #2a2a35;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: 13px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #apiKeyModal .form-group input:focus,
+    #apiKeyModal .form-group select:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    #apiKeyModal .form-group input::placeholder {
+      color: #333;
+    }
+
+    #apiKeyModal .key-input-group {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    #apiKeyModal .key-input-group input {
+      flex: 1;
+      margin: 0;
+    }
+
+    #apiKeyModal .toggle-btn {
+      padding: 10px 12px;
+      background: #0f0f12;
+      border: 1px solid #2a2a35;
+      border-radius: 8px;
+      color: #666;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+      width: 44px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #apiKeyModal .toggle-btn:hover {
+      border-color: #6366f1;
+      color: #6366f1;
+    }
+
+    #apiKeyModal .btn-cancel,
+    #apiKeyModal .btn-save {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 100px;
+    }
+
+    #apiKeyModal .btn-cancel {
+      background: #2a2a35;
+      color: #aaa;
+    }
+
+    #apiKeyModal .btn-cancel:hover {
+      background: #3a3a45;
+      color: #fff;
+    }
+
+    #apiKeyModal .btn-save {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+    }
+
+    #apiKeyModal .btn-save:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    #apiKeyModal .btn-save:active {
+      transform: translateY(0);
+    }
+
+    #apiKeyModal small {
+      font-size: 12px;
+    }
+    
+    #modal-overlay-new {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      z-index: -1;
+    }
+    </style>
+
+    <script>
+    // Load existing agents into the dropdown
+    async function populateAgentDropdown() {
+      try {
+        const res = await fetch('/api/agent-keys');
+        const agents = await res.json();
+        const select = document.getElementById('agentSelect');
+        
+        // Clear existing options except the first one
+        while (select.options.length > 1) {
+          select.remove(1);
+        }
+        
+        // Add each agent as an option
+        Object.keys(agents).forEach(agentName => {
+          const option = document.createElement('option');
+          option.value = agentName;
+          option.textContent = agentName;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Failed to load agents:', error);
+      }
+    }
+
+    // Load keys for selected agent
+    async function loadAgentKeys() {
+      const agentName = document.getElementById('agentSelect').value;
+      if (!agentName) {
+        clearAllKeyInputs();
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/agent-keys');
+        const agents = await res.json();
+        const agent = agents[agentName];
+        
+        if (agent) {
+          document.getElementById('geminiKeyInput').value = agent.gemini || '';
+          document.getElementById('sarvamKeyInput').value = agent.sarvam || '';
+          document.getElementById('speechmaticsKeyInput').value = agent.speechmatics || '';
+          document.getElementById('agentNameInput').value = agentName;
+        }
+      } catch (error) {
+        console.error('Failed to load agent keys:', error);
+      }
+    }
+
+    // Toggle password visibility
+    // Declared outside to avoid conflict or reuse
+    function toggleKeyVisibility(inputId) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+      } else {
+        input.type = 'password';
+      }
+    }
+
+    // Clear all key inputs
+    function clearAllKeyInputs() {
+      document.getElementById('agentNameInput').value = '';
+      document.getElementById('geminiKeyInput').value = '';
+      document.getElementById('sarvamKeyInput').value = '';
+      document.getElementById('speechmaticsKeyInput').value = '';
+    }
+
+    // Save API Keys
+    async function saveApiKeys() {
+      const agentName = (
+        document.getElementById('agentSelect').value || 
+        document.getElementById('agentNameInput').value
+      ).trim();
+      
+      const geminiKey = document.getElementById('geminiKeyInput').value.trim();
+      const sarvamKey = document.getElementById('sarvamKeyInput').value.trim();
+      const speechmaticsKey = document.getElementById('speechmaticsKeyInput').value.trim();
+
+      if (!agentName) {
+        alert('Please select or enter an agent name');
+        return;
+      }
+
+      if (!geminiKey) {
+        alert('Gemini API Key is required');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/agent-keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent: agentName,
+            gemini: geminiKey,
+            sarvam: sarvamKey,
+            speechmatics: speechmaticsKey
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert(`✓ Keys saved for ${agentName}`);
+          closeApiKeyModal();
+          populateAgentDropdown();
+        } else {
+          alert('Error: ' + (data.error || 'Failed to save keys'));
+        }
+      } catch (error) {
+        console.error('Save error:', error);
+        alert('Failed to save keys: ' + error.message);
+      }
+    }
+
+    // Open API Key Modal
+    function openApiKeyModal() {
+      const modal = document.getElementById('apiKeyModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        populateAgentDropdown();
+        clearAllKeyInputs();
+      }
+    }
+
+    // Close API Key Modal
+    function closeApiKeyModal() {
+      const modal = document.getElementById('apiKeyModal');
+      if (modal) {
+        modal.classList.add('hidden');
+      }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      populateAgentDropdown();
+      
+      // Wire up original gear settings icon to open the new modal
+      const settingsBtn = document.getElementById('settings-btn');
+      if (settingsBtn) {
+        // Clone to remove old listener, if any
+        const newSettingsBtn = settingsBtn.cloneNode(true);
+        settingsBtn.parentNode.replaceChild(newSettingsBtn, settingsBtn);
+        newSettingsBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          openApiKeyModal();
+        });
+      }
+    });
+    </script>
+
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>CallAnalyzer AI &mdash; Unified transcription + analysis powered by Google Gemini 2.5 Flash</p>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
+
