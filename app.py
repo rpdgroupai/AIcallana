@@ -23,6 +23,28 @@ ALLOWED_EXTENSIONS = {'mp3', 'wav', 'ogg', 'flac', 'webm', 'm4a', 'aac', 'wma'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+KEYS_FILE = 'agent_keys.json'
+
+def load_keys():
+    if os.path.exists(KEYS_FILE):
+        with open(KEYS_FILE) as f:
+            return json.load(f)
+    return {}
+
+def save_keys(keys):
+    with open(KEYS_FILE, 'w') as f:
+        json.dump(keys, f, indent=2)
+
+def get_agent_gemini_key(agent_id: str):
+    keys = load_keys()
+    agent_key = keys.get(agent_id, {}).get('gemini', '').strip()
+    return agent_key or os.environ.get('GEMINI_API_KEY') or None
+
+def get_agent_sarvam_key(agent_id: str):
+    keys = load_keys()
+    agent_key = keys.get(agent_id, {}).get('sarvam', '').strip()
+    return agent_key or os.environ.get('SARVAM_API_KEY') or None
+
 async def run_speechmatics_transcription(filepath, api_key):
     from speechmatics.batch import AsyncClient, TranscriptionConfig, Model
     async with AsyncClient(api_key=api_key) as client:
@@ -105,8 +127,18 @@ def api_analyze():
 
     # Get model and keys
     transcription_model = request.form.get('transcription_model', 'gemini')
-    
-    gemini_key = request.headers.get('X-Gemini-API-Key') or os.environ.get('GEMINI_API_KEY')
+
+    agent_id = (request.form.get('agent_id') or '').strip()
+
+    if agent_id:
+        gemini_key = get_agent_gemini_key(agent_id)
+        sarvam_key = get_agent_sarvam_key(agent_id)
+        speechmatics_key = os.environ.get('SPEECHMATICS_API_KEY')
+    else:
+        gemini_key = request.headers.get('X-Gemini-API-Key') or os.environ.get('GEMINI_API_KEY')
+        sarvam_key = request.headers.get('X-Sarvam-API-Key') or os.environ.get('SARVAM_API_KEY')
+        speechmatics_key = request.headers.get('X-Speechmatics-API-Key') or os.environ.get('SPEECHMATICS_API_KEY')
+
     if not gemini_key:
         return jsonify({
             "error": "Gemini API Key is missing. Please configure your API key in the settings (gear icon in the top right)."
@@ -467,18 +499,6 @@ JSON Schema:
             except Exception as e:
                 print(f"Failed to delete file from Gemini storage: {e}")
 
-
-KEYS_FILE = 'agent_keys.json'
-
-def load_keys():
-    if os.path.exists(KEYS_FILE):
-        with open(KEYS_FILE) as f:
-            return json.load(f)
-    return {}
-
-def save_keys(keys):
-    with open(KEYS_FILE, 'w') as f:
-        json.dump(keys, f, indent=2)
 
 @app.route('/keys')
 def keys_page():

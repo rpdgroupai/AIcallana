@@ -1,696 +1,767 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Call Analyzer — AI-Powered Call Intelligence</title>
-    <meta name="description" content="Upload call recordings and get instant AI-powered transcription and analysis with structured insights, sentiment detection, and action items.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CallAnalyzer AI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0b0c10;
+      --surface:  #13141a;
+      --surface2: #1a1b23;
+      --border:   #1e1f2a;
+      --border2:  #2a2b3a;
+      --text:     #dddde8;
+      --muted:    #55566a;
+      --accent:   #7c6af7;
+      --accent2:  #9b8bff;
+      --green:    #3ecf6a;
+      --red:      #f05050;
+      --yellow:   #f5a623;
+      --mono:     'JetBrains Mono', 'Fira Mono', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-logo {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, #6052e8, #9b8bff);
+      display: grid; place-items: center; font-size: 16px; flex-shrink: 0;
+    }
+    .topbar-name { font-size: 15px; font-weight: 700; color: #fff; }
+    .topbar-name span { color: var(--accent2); }
+
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+    /* Agent pill in topbar */
+    .agent-pill {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 20px; padding: 5px 12px 5px 8px; cursor: pointer;
+      transition: border-color .18s;
+    }
+    .agent-pill:hover { border-color: var(--accent); }
+    .agent-pill-avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: linear-gradient(135deg, #3a3060, #7c6af7);
+      display: grid; place-items: center;
+      font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .agent-pill-name { font-size: 12px; font-weight: 600; color: var(--text); }
+    .agent-pill-caret { font-size: 10px; color: var(--muted); }
+
+    .model-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 5px 12px;
+      font-size: 12px; color: var(--text);
+    }
+    .model-badge-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green); flex-shrink: 0;
+    }
+
+    /* ── Steps ── */
+    .steps-bar {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; padding: 20px 24px 0;
+    }
+    .step {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted);
+    }
+    .step-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 1px solid var(--border2);
+      display: grid; place-items: center;
+      font-size: 11px; font-weight: 600;
+      flex-shrink: 0;
+    }
+    .step.active { color: var(--text); }
+    .step.active .step-num {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+    .step.done .step-num {
+      background: rgba(62,207,106,.15); border-color: var(--green); color: var(--green);
+    }
+    .step.done { color: var(--green); }
+    .step-line {
+      width: 60px; height: 1px; background: var(--border2); margin: 0 8px;
+    }
+
+    /* ── Main ── */
+    .main {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; padding: 32px 16px 48px;
+    }
+
+    .card {
+      width: 100%; max-width: 720px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    /* ── Upload zone ── */
+    .upload-zone {
+      border: 2px dashed var(--border2);
+      border-radius: 10px; margin: 20px;
+      padding: 52px 20px; text-align: center;
+      cursor: pointer; transition: all .2s;
+      background: var(--bg);
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(124,106,247,.04); }
+    .upload-zone.has-file { border-color: var(--green); border-style: solid; background: rgba(62,207,106,.04); }
+    .upload-icon { font-size: 32px; margin-bottom: 10px; }
+    .upload-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    .upload-sub { font-size: 12px; color: var(--muted); }
+    .upload-file-name {
+      font-size: 13px; font-weight: 600; color: var(--green);
+      font-family: var(--mono); margin-top: 8px;
+    }
+    #fileInput { display: none; }
+
+    /* ── Model select ── */
+    .card-body { padding: 0 20px 20px; }
+    .field-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    select {
+      width: 100%; background: var(--bg);
+      border: 1px solid var(--border2); border-radius: 8px;
+      color: var(--text); font-size: 13px;
+      padding: 10px 12px; outline: none;
+      transition: border-color .18s; cursor: pointer;
+    }
+    select:focus { border-color: var(--accent); }
+    select option { background: var(--surface); }
+
+    /* ── Generate button ── */
+    .btn-generate {
+      width: 100%; margin-top: 16px; padding: 13px;
+      background: linear-gradient(135deg, #6052e8, #9b8bff);
+      color: #fff; border: none; border-radius: 9px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: opacity .18s; display: flex;
+      align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-generate:hover:not(:disabled) { opacity: .88; }
+    .btn-generate:disabled { opacity: .35; cursor: default; }
+
+    /* ── Agent warning (no agent selected) ── */
+    .no-agent-warn {
+      margin: 0 20px 16px;
+      padding: 10px 14px; border-radius: 8px;
+      background: rgba(245,166,35,.08);
+      border: 1px solid rgba(245,166,35,.25);
+      font-size: 12px; color: var(--yellow);
+      display: none;
+    }
+    .no-agent-warn.show { display: flex; align-items: center; gap: 8px; }
+
+    /* ── Progress ── */
+    .progress-wrap {
+      margin: 0 20px 16px; display: none;
+    }
+    .progress-wrap.show { display: block; }
+    .progress-bar-bg {
+      height: 4px; background: var(--border2); border-radius: 2px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; background: linear-gradient(90deg, #6052e8, #9b8bff);
+      border-radius: 2px; width: 0%; transition: width .4s ease;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+      0%   { opacity: 1; }
+      50%  { opacity: .6; }
+      100% { opacity: 1; }
+    }
+    .progress-label {
+      font-size: 11px; color: var(--muted); margin-top: 6px; text-align: center;
+    }
+
+    /* ── Error ── */
+    .error-box {
+      margin: 0 20px 16px; padding: 12px 14px; border-radius: 8px;
+      background: rgba(240,80,80,.08); border: 1px solid rgba(240,80,80,.25);
+      font-size: 12px; color: var(--red); display: none;
+    }
+    .error-box.show { display: block; }
+
+    /* ── Report ── */
+    .report-wrap {
+      margin-top: 24px; width: 100%; max-width: 720px;
+      display: none;
+    }
+    .report-wrap.show { display: block; }
+
+    .report-header {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px 14px 0 0; padding: 16px 20px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .report-title { font-size: 16px; font-weight: 700; color: #fff; flex: 1; }
+    .report-agent-tag {
+      font-size: 11px; padding: 3px 10px; border-radius: 20px;
+      background: rgba(124,106,247,.15); color: var(--accent2);
+      border: 1px solid rgba(124,106,247,.3); font-weight: 600;
+    }
+
+    .report-grid {
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: none; border-radius: 0 0 14px 14px;
+      padding: 20px; display: grid; gap: 16px;
+    }
+
+    .report-section {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .report-section-title {
+      font-size: 10px; text-transform: uppercase; letter-spacing: .7px;
+      font-weight: 700; color: var(--muted); margin-bottom: 10px;
+    }
+    .report-text { font-size: 13px; line-height: 1.65; color: var(--text); }
+
+    .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kv-item { background: var(--surface2); border-radius: 7px; padding: 10px 12px; }
+    .kv-label { font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 3px; }
+    .kv-value { font-size: 13px; color: var(--text); font-weight: 500; }
+
+    .pill-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill {
+      font-size: 11px; padding: 3px 10px; border-radius: 20px;
+      background: var(--surface2); border: 1px solid var(--border2); color: var(--text);
+    }
+    .pill.red   { background: rgba(240,80,80,.1);  border-color: rgba(240,80,80,.25);  color: var(--red); }
+    .pill.yellow{ background: rgba(245,166,35,.1); border-color: rgba(245,166,35,.25); color: var(--yellow); }
+    .pill.green { background: rgba(62,207,106,.1); border-color: rgba(62,207,106,.25); color: var(--green); }
+
+    .alert-item {
+      padding: 10px 12px; border-radius: 8px; margin-bottom: 6px;
+      background: rgba(240,80,80,.07); border: 1px solid rgba(240,80,80,.2);
+      font-size: 12px; color: var(--red); line-height: 1.5;
+    }
+    .flag-item {
+      padding: 8px 12px; border-radius: 7px; margin-bottom: 6px;
+      background: rgba(245,166,35,.06); border: 1px solid rgba(245,166,35,.18);
+      font-size: 12px; color: var(--yellow); line-height: 1.5;
+    }
+
+    .commit-row {
+      display: flex; gap: 10px; padding: 8px 10px; border-radius: 7px;
+      background: var(--surface2); margin-bottom: 6px; font-size: 12px;
+    }
+    .commit-by { font-weight: 700; color: var(--accent2); min-width: 70px; }
+    .commit-text { color: var(--text); line-height: 1.5; }
+
+    .action-row {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 8px 10px; border-radius: 7px;
+      background: var(--surface2); margin-bottom: 6px; font-size: 12px;
+    }
+    .urgency-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 12px; flex-shrink: 0;
+    }
+    .urgency-Immediate { background: rgba(240,80,80,.15); color: var(--red); }
+    .urgency-Soon      { background: rgba(245,166,35,.15); color: var(--yellow); }
+    .urgency-Whenever  { background: rgba(62,207,106,.1);  color: var(--green); }
+
+    .tone-chip {
+      display: inline-block; font-size: 12px; font-weight: 600;
+      padding: 4px 14px; border-radius: 20px;
+    }
+    .tone-Positive   { background: rgba(62,207,106,.12); color: var(--green); }
+    .tone-Productive { background: rgba(62,207,106,.12); color: var(--green); }
+    .tone-Neutral    { background: rgba(124,106,247,.12); color: var(--accent2); }
+    .tone-Tense      { background: rgba(245,166,35,.12);  color: var(--yellow); }
+    .tone-Frustrated { background: rgba(240,80,80,.12);   color: var(--red); }
+
+    /* ── Transcript toggle ── */
+    .transcript-toggle {
+      background: none; border: 1px solid var(--border2); border-radius: 7px;
+      color: var(--muted); font-size: 12px; padding: 6px 12px; cursor: pointer;
+      margin-bottom: 10px; transition: all .15s;
+    }
+    .transcript-toggle:hover { border-color: var(--accent); color: var(--accent2); }
+    .transcript-text {
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      line-height: 1.7; max-height: 220px; overflow-y: auto;
+      padding: 12px; background: var(--surface2); border-radius: 7px;
+      border: 1px solid var(--border); display: none;
+    }
+    .transcript-text.show { display: block; }
+
+    /* ── Agent select modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.75);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; backdrop-filter: blur(4px);
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 14px; padding: 28px; width: 380px; max-width: 95vw;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .modal-sub   { font-size: 12px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
+
+    .agent-select-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .agent-btn {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-radius: 9px;
+      background: var(--bg); border: 1px solid var(--border2);
+      cursor: pointer; transition: all .15s; text-align: left;
+    }
+    .agent-btn:hover { border-color: var(--accent); background: rgba(124,106,247,.06); }
+    .agent-btn-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, #3a3060, #7c6af7);
+      display: grid; place-items: center;
+      font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .agent-btn-name { font-size: 14px; font-weight: 600; color: #fff; }
+    .agent-btn-status { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .agent-btn-status.ok { color: var(--green); }
+    .agent-btn-status.warn { color: var(--yellow); }
+
+    .modal-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+    .modal-sub-text { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+
+    /* Footer */
+    .footer {
+      text-align: center; padding: 20px;
+      font-size: 11px; color: var(--muted); border-top: 1px solid var(--border);
+    }
+  </style>
 </head>
-<body data-agent-id="{{ agent_id or '' }}">
-    <script>
-        // If loaded via /agent/ route, suppress API key modal
-        const agentId = document.body.dataset.agentId
-        if (agentId) {
-            // Hide settings/key button
-            window.addEventListener('DOMContentLoaded', () => {
-                const settingsBtn = document.getElementById('settings-btn')
-                if (settingsBtn) settingsBtn.style.display = 'none'
-            });
-        }
-    </script>
+<body>
 
+  <!-- ── Topbar ── -->
+  <header class="topbar">
+    <div class="topbar-logo">🎙</div>
+    <div class="topbar-name">CallAnalyzer<span>AI</span></div>
+    <div class="topbar-right">
+      <div class="model-badge">
+        <div class="model-badge-dot"></div>
+        Gemini 2.5 Flash
+      </div>
+      <!-- Agent pill — click to switch agent -->
+      <div class="agent-pill" id="agentPill" onclick="showAgentModal()" title="Switch agent">
+        <div class="agent-pill-avatar" id="pillAvatar">?</div>
+        <span class="agent-pill-name" id="pillName">Select Agent</span>
+        <span class="agent-pill-caret">▾</span>
+      </div>
+    </div>
+  </header>
 
-    <!-- Animated background -->
-    <div class="bg-grid"></div>
-    <div class="bg-glow bg-glow-1"></div>
-    <div class="bg-glow bg-glow-2"></div>
-    <div class="bg-glow bg-glow-3"></div>
+  <!-- ── Steps ── -->
+  <div class="steps-bar" id="stepsBar">
+    <div class="step active" id="step1"><div class="step-num">1</div> Choose audio file</div>
+    <div class="step-line"></div>
+    <div class="step" id="step2"><div class="step-num">2</div> Gemini AI</div>
+    <div class="step-line"></div>
+    <div class="step" id="step3"><div class="step-num">3</div> Intelligence dashboard</div>
+  </div>
 
-    <!-- Header -->
-    <header class="header" id="header">
-        <div class="header-inner">
-            <div class="logo">
-                <div class="logo-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                    </svg>
-                </div>
-                <span class="logo-text">CallAnalyzer<span class="logo-ai">AI</span></span>
-            </div>
-            <div class="header-actions">
-                <div class="header-badge">
-                    <span class="badge-dot"></span>
-                    Gemini 2.5 Flash
-                </div>
-                <button class="settings-btn" id="settings-btn" title="Configure API Key">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </header>
+  <!-- ── Main ── -->
+  <main class="main">
 
-    <!-- Hero Section -->
-    <section class="hero" id="hero">
-        <div class="hero-content">
-            <div class="hero-tag">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
-                AI-Powered Call Intelligence
-            </div>
-            <h1 class="hero-title">
-                Turn every call into<br>
-                <span class="gradient-text">actionable insights</span>
-            </h1>
-            <p class="hero-subtitle">
-                Upload a call recording. Get an instant AI-generated transcript and a structured 
-                intelligence report — sentiment, decisions, red alerts, action items, and more.
-            </p>
-        </div>
-    </section>
+    <div class="card">
+      <!-- Upload zone -->
+      <div class="upload-zone" id="uploadZone"
+           onclick="document.getElementById('fileInput').click()"
+           ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <div class="upload-icon" id="uploadIcon">⬆️</div>
+        <div class="upload-title" id="uploadTitle">Drop your audio file here</div>
+        <div class="upload-sub">or click to browse • MP3, WAV, OGG, FLAC, M4A, WebM up to 200MB</div>
+        <div class="upload-file-name" id="uploadFileName"></div>
+      </div>
+      <input type="file" id="fileInput" accept=".mp3,.wav,.ogg,.flac,.webm,.m4a,.aac,.wma"
+             onchange="onFileSelected(this.files[0])" />
 
-    <!-- Pipeline Steps Indicator -->
-    <section class="pipeline-section" id="pipeline-section">
-        <div class="pipeline-steps">
-            <div class="pipeline-step active" id="step-upload">
-                <div class="step-number">1</div>
-                <div class="step-info">
-                    <div class="step-label">Upload</div>
-                    <div class="step-desc">Choose audio file</div>
-                </div>
-            </div>
-            <div class="pipeline-connector" id="connector-1"></div>
-            <div class="pipeline-step" id="step-transcribe">
-                <div class="step-number">2</div>
-                <div class="step-info">
-                    <div class="step-label">Process</div>
-                    <div class="step-desc">Gemini AI</div>
-                </div>
-            </div>
-            <div class="pipeline-connector" id="connector-2"></div>
-            <div class="pipeline-step" id="step-report">
-                <div class="step-number">3</div>
-                <div class="step-info">
-                    <div class="step-label">Report</div>
-                    <div class="step-desc">Intelligence dashboard</div>
-                </div>
-            </div>
-        </div>
-    </section>
+      <!-- No-agent warning -->
+      <div class="no-agent-warn" id="noAgentWarn">
+        ⚠ No agent selected. <a href="#" onclick="showAgentModal();return false" style="color:var(--yellow);text-decoration:underline">Select agent</a> to enable analysis.
+      </div>
 
-    <!-- Upload Section -->
-    <section class="upload-section" id="upload-section">
-        <div class="upload-card" id="upload-card">
-            <div class="dropzone" id="dropzone">
-                <div class="dropzone-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="17 8 12 3 7 8"/>
-                        <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                </div>
-                <h3 class="dropzone-title">Drop your audio file here</h3>
-                <p class="dropzone-hint">or click to browse • MP3, WAV, OGG, FLAC, M4A, WebM up to 100MB</p>
-                <input type="file" id="file-input" accept=".mp3,.wav,.ogg,.flac,.webm,.m4a,.aac,.wma" hidden>
-            </div>
+      <!-- Progress -->
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+        <div class="progress-label" id="progressLabel">Uploading…</div>
+      </div>
 
-            <!-- File Preview -->
-            <div class="file-preview hidden" id="file-preview">
-                <div class="file-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 18V5l12-2v13"/>
-                        <circle cx="6" cy="18" r="3"/>
-                        <circle cx="18" cy="16" r="3"/>
-                    </svg>
-                </div>
-                <div class="file-details">
-                    <span class="file-name" id="file-name">audio.mp3</span>
-                    <span class="file-size" id="file-size">2.4 MB</span>
-                </div>
-                <button class="file-remove" id="file-remove" title="Remove file">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-            </div>
+      <!-- Error -->
+      <div class="error-box" id="errorBox"></div>
 
-            <!-- Model Selection dropdown -->
-            <div class="model-select-container">
-                <label for="model-select" class="model-select-label">Transcription Model</label>
-                <div class="model-select-wrapper">
-                    <select id="model-select" class="model-select">
-                        <option value="gemini">Google Gemini 2.5 Flash</option>
-                        <option value="sarvam">Sarvam AI (Saaras v3)</option>
-                        <option value="speechmatics">Speechmatics (Enhanced)</option>
-                    </select>
+      <div class="card-body">
+        <div class="field-label">Transcription Model</div>
+        <select id="modelSelect">
+          <option value="gemini">Google Gemini 2.5 Flash</option>
+          <option value="sarvam">Sarvam AI — Saaras v3 (Marathi/Hindi)</option>
+          <option value="speechmatics">Speechmatics — Enhanced</option>
+        </select>
 
-                </div>
-            </div>
-
-            <!-- Generate Button -->
-            <button class="generate-btn" id="generate-btn" disabled>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/>
-                </svg>
-                Generate Report
-            </button>
-        </div>
-    </section>
-
-    <!-- Processing Overlay -->
-    <section class="processing-section hidden" id="processing-section">
-        <div class="processing-card">
-            <div class="processing-spinner">
-                <div class="spinner-ring"></div>
-                <div class="spinner-ring inner"></div>
-            </div>
-            <h3 class="processing-title" id="processing-title">Sending to Gemini...</h3>
-            <p class="processing-desc" id="processing-desc">Uploading file and transcribing audio using Gemini AI. This may take 10–60 seconds depending on length.</p>
-            <div class="processing-progress">
-                <div class="progress-bar" id="progress-bar"></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Error Display -->
-    <section class="error-section hidden" id="error-section">
-        <div class="error-card">
-            <div class="error-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-                </svg>
-            </div>
-            <h3 class="error-title">Something went wrong</h3>
-            <p class="error-message" id="error-message">An unknown error occurred.</p>
-            <button class="retry-btn" id="retry-btn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                Try Again
-            </button>
-        </div>
-    </section>
-
-    <!-- Results Section -->
-    <section class="results-section hidden" id="results-section">
-
-        <!-- Transcript Panel -->
-        <div class="result-panel transcript-panel" id="transcript-panel">
-            <div class="panel-header">
-                <div class="panel-title-group">
-                    <div class="panel-icon transcript-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    </div>
-                    <h2 class="panel-title">Transcript</h2>
-                    <span class="panel-badge" id="transcript-badge">Gemini 2.5 Flash</span>
-                </div>
-                <button class="copy-btn" id="copy-transcript-btn" title="Copy transcript">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    Copy
-                </button>
-            </div>
-            <div class="panel-body">
-                <div class="transcript-text" id="transcript-text"></div>
-            </div>
-        </div>
-
-        <!-- Report Panel -->
-        <div class="result-panel report-panel" id="report-panel">
-            <div class="panel-header">
-                <div class="panel-title-group">
-                    <div class="panel-icon report-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                    </div>
-                    <h2 class="panel-title">Call Intelligence Report</h2>
-                    <span class="panel-badge report-badge">Gemini AI</span>
-                </div>
-                <button class="copy-btn" id="copy-report-btn" title="Copy report JSON">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    Copy JSON
-                </button>
-            </div>
-            <div class="panel-body report-body" id="report-body">
-                <!-- Report cards rendered by JS -->
-            </div>
-        </div>
-
-    </section>
-
-    <!-- Settings Modal -->
-    <div id="apiKeyModal" class="modal hidden">
-      <div class="modal-overlay" id="modal-overlay-new" onclick="closeApiKeyModal()"></div>
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Configure API Keys</h2>
-          <button class="close-btn" onclick="closeApiKeyModal()">×</button>
-        </div>
-        
-        <div class="modal-body">
-          <!-- Agent Name Select Dropdown -->
-          <div class="form-group">
-            <label for="agentSelect">Select Agent Name</label>
-            <select id="agentSelect" onchange="loadAgentKeys()">
-              <option value="">-- Choose an agent --</option>
-            </select>
-            <small style="color: #888; display: block; margin-top: 4px;">Or type new agent name below</small>
-          </div>
-
-          <!-- Manual Agent Name Input (for new agents) -->
-          <div class="form-group">
-            <label for="agentNameInput">Agent Name (if not in list above)</label>
-            <input 
-              id="agentNameInput" 
-              type="text" 
-              placeholder="e.g. Sonali, Kalyani, Anant"
-              autocomplete="off"
-            />
-          </div>
-
-          <!-- Gemini API Key -->
-          <div class="form-group">
-            <label for="geminiKeyInput">Gemini API Key *</label>
-            <div class="key-input-group">
-              <input 
-                id="geminiKeyInput" 
-                type="password" 
-                placeholder="AIza..."
-                autocomplete="off"
-              />
-              <button type="button" class="toggle-btn" onclick="toggleKeyVisibility('geminiKeyInput')">
-                👁
-              </button>
-            </div>
-          </div>
-
-          <!-- Sarvam AI API Key -->
-          <div class="form-group">
-            <label for="sarvamKeyInput">Sarvam AI API Key (optional)</label>
-            <div class="key-input-group">
-              <input 
-                id="sarvamKeyInput" 
-                type="password" 
-                placeholder="sk_..."
-                autocomplete="off"
-              />
-              <button type="button" class="toggle-btn" onclick="toggleKeyVisibility('sarvamKeyInput')">
-                👁
-              </button>
-            </div>
-          </div>
-
-          <!-- Speechmatics API Key -->
-          <div class="form-group">
-            <label for="speechmaticsKeyInput">Speechmatics API Key (optional)</label>
-            <div class="key-input-group">
-              <input 
-                id="speechmaticsKeyInput" 
-                type="password" 
-                placeholder="Speechmatics API Key..."
-                autocomplete="off"
-              />
-              <button type="button" class="toggle-btn" onclick="toggleKeyVisibility('speechmaticsKeyInput')">
-                👁
-              </button>
-            </div>
-          </div>
-
-          <small style="color: #999; display: block; margin-top: 10px;">
-            * Gemini API Key is required. Other keys are optional based on your transcription model choice.
-          </small>
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn-cancel" onclick="closeApiKeyModal()">Cancel</button>
-          <button class="btn-save" onclick="saveApiKeys()">Save Keys</button>
-        </div>
+        <button class="btn-generate" id="generateBtn" onclick="generate()" disabled>
+          ⚡ Generate Report
+        </button>
       </div>
     </div>
 
-    <style>
-    /* Modal Styles override/extensions */
-    #apiKeyModal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-    }
+    <!-- ── Report ── -->
+    <div class="report-wrap" id="reportWrap">
+      <div class="report-header">
+        <div class="report-title">📊 Call Intelligence Report</div>
+        <div class="report-agent-tag" id="reportAgentTag"></div>
+      </div>
+      <div class="report-grid" id="reportGrid"></div>
+    </div>
 
-    #apiKeyModal.hidden {
-      display: none;
-    }
+  </main>
 
-    #apiKeyModal:not(.hidden) {
-      display: flex;
-    }
+  <footer class="footer">
+    CallAnalyzer AI — Unified transcription + analysis powered by Google Gemini 2.5 Flash
+  </footer>
 
-    #apiKeyModal .modal-content {
-      background: #1a1a1f;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 500px;
-      max-height: 85vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-      border: 1px solid #2a2a35;
-    }
+  <!-- ── Agent Select Modal ── -->
+  <div class="modal-overlay" id="agentModal">
+    <div class="modal">
+      <div class="modal-title">👤 Select Your Agent Profile</div>
+      <div class="modal-sub">Choose your name. Your API keys are loaded automatically. This is remembered for future visits.</div>
+      <div class="agent-select-list" id="agentSelectList">
+        <div style="font-size:12px;color:var(--muted);padding:8px">Loading agents…</div>
+      </div>
+      <hr class="modal-divider" />
+      <div class="modal-sub-text">Not listed? Ask manager to add you at <strong>/keys</strong></div>
+    </div>
+  </div>
 
-    #apiKeyModal .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px;
-      border-bottom: 1px solid #2a2a35;
-    }
+  <script>
+    // ── State ──────────────────────────────────────────────────────────────────
+    let selectedFile = null
+    let currentAgent = localStorage.getItem('cb_agent') || null
+    let agentList    = {}  // { name: { gemini, sarvam } }
 
-    #apiKeyModal .modal-header h2 {
-      margin: 0;
-      color: #fff;
-      font-size: 18px;
-    }
-
-    #apiKeyModal .close-btn {
-      background: none;
-      border: none;
-      color: #666;
-      font-size: 28px;
-      cursor: pointer;
-      padding: 0;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      transition: all 0.2s;
-    }
-
-    #apiKeyModal .close-btn:hover {
-      background: #2a2a35;
-      color: #fff;
-    }
-
-    #apiKeyModal .modal-body {
-      padding: 20px;
-    }
-
-    #apiKeyModal .modal-footer {
-      display: flex;
-      gap: 12px;
-      padding: 20px;
-      border-top: 1px solid #2a2a35;
-      justify-content: flex-end;
-    }
-
-    #apiKeyModal .form-group {
-      margin-bottom: 16px;
-    }
-
-    #apiKeyModal .form-group label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #aaa;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    #apiKeyModal .form-group input,
-    #apiKeyModal .form-group select {
-      width: 100%;
-      padding: 10px 12px;
-      background: #0f0f12;
-      border: 1px solid #2a2a35;
-      border-radius: 8px;
-      color: #e0e0e0;
-      font-size: 13px;
-      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    #apiKeyModal .form-group input:focus,
-    #apiKeyModal .form-group select:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-
-    #apiKeyModal .form-group input::placeholder {
-      color: #333;
-    }
-
-    #apiKeyModal .key-input-group {
-      display: flex;
-      gap: 8px;
-      align-items: stretch;
-    }
-
-    #apiKeyModal .key-input-group input {
-      flex: 1;
-      margin: 0;
-    }
-
-    #apiKeyModal .toggle-btn {
-      padding: 10px 12px;
-      background: #0f0f12;
-      border: 1px solid #2a2a35;
-      border-radius: 8px;
-      color: #666;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s;
-      width: 44px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #apiKeyModal .toggle-btn:hover {
-      border-color: #6366f1;
-      color: #6366f1;
-    }
-
-    #apiKeyModal .btn-cancel,
-    #apiKeyModal .btn-save {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      min-width: 100px;
-    }
-
-    #apiKeyModal .btn-cancel {
-      background: #2a2a35;
-      color: #aaa;
-    }
-
-    #apiKeyModal .btn-cancel:hover {
-      background: #3a3a45;
-      color: #fff;
-    }
-
-    #apiKeyModal .btn-save {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: white;
-    }
-
-    #apiKeyModal .btn-save:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-    }
-
-    #apiKeyModal .btn-save:active {
-      transform: translateY(0);
-    }
-
-    #apiKeyModal small {
-      font-size: 12px;
-    }
-    
-    #modal-overlay-new {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: transparent;
-      z-index: -1;
-    }
-    </style>
-
-    <script>
-    // Load existing agents into the dropdown
-    async function populateAgentDropdown() {
-      try {
-        const res = await fetch('/api/agent-keys');
-        const agents = await res.json();
-        const select = document.getElementById('agentSelect');
-        
-        // Clear existing options except the first one
-        while (select.options.length > 1) {
-          select.remove(1);
-        }
-        
-        // Add each agent as an option
-        Object.keys(agents).forEach(agentName => {
-          const option = document.createElement('option');
-          option.value = agentName;
-          option.textContent = agentName;
-          select.appendChild(option);
-        });
-      } catch (error) {
-        console.error('Failed to load agents:', error);
-      }
-    }
-
-    // Load keys for selected agent
-    async function loadAgentKeys() {
-      const agentName = document.getElementById('agentSelect').value;
-      if (!agentName) {
-        clearAllKeyInputs();
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/agent-keys');
-        const agents = await res.json();
-        const agent = agents[agentName];
-        
-        if (agent) {
-          document.getElementById('geminiKeyInput').value = agent.gemini || '';
-          document.getElementById('sarvamKeyInput').value = agent.sarvam || '';
-          document.getElementById('speechmaticsKeyInput').value = agent.speechmatics || '';
-          document.getElementById('agentNameInput').value = agentName;
-        }
-      } catch (error) {
-        console.error('Failed to load agent keys:', error);
-      }
-    }
-
-    // Toggle password visibility
-    // Declared outside to avoid conflict or reuse
-    function toggleKeyVisibility(inputId) {
-      const input = document.getElementById(inputId);
-      if (input.type === 'password') {
-        input.type = 'text';
+    // ── Boot ───────────────────────────────────────────────────────────────────
+    async function boot() {
+      await fetchAgents()
+      if (!currentAgent || !agentList[currentAgent]) {
+        // No agent remembered or agent was deleted — force selection
+        showAgentModal()
       } else {
-        input.type = 'password';
+        updatePill(currentAgent)
+        document.getElementById('agentModal').classList.add('hidden')
       }
     }
 
-    // Clear all key inputs
-    function clearAllKeyInputs() {
-      document.getElementById('agentNameInput').value = '';
-      document.getElementById('geminiKeyInput').value = '';
-      document.getElementById('sarvamKeyInput').value = '';
-      document.getElementById('speechmaticsKeyInput').value = '';
+    async function fetchAgents() {
+      try {
+        const res = await fetch('/api/agent-keys')
+        agentList = await res.json()
+      } catch(e) {
+        agentList = {}
+      }
     }
 
-    // Save API Keys
-    async function saveApiKeys() {
-      const agentName = (
-        document.getElementById('agentSelect').value || 
-        document.getElementById('agentNameInput').value
-      ).trim();
-      
-      const geminiKey = document.getElementById('geminiKeyInput').value.trim();
-      const sarvamKey = document.getElementById('sarvamKeyInput').value.trim();
-      const speechmaticsKey = document.getElementById('speechmaticsKeyInput').value.trim();
+    // ── Agent modal ────────────────────────────────────────────────────────────
+    function showAgentModal() {
+      document.getElementById('agentModal').classList.remove('hidden')
+      renderAgentList()
+    }
 
-      if (!agentName) {
-        alert('Please select or enter an agent name');
-        return;
+    function renderAgentList() {
+      const list = document.getElementById('agentSelectList')
+      const entries = Object.entries(agentList)
+      if (!entries.length) {
+        list.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px">No agents configured yet. Ask manager to add agents at <strong>/keys</strong></div>'
+        return
+      }
+      list.innerHTML = entries.map(([name, keys]) => {
+        const hasKey = !!(keys.gemini && keys.gemini.trim())
+        const initials = name.slice(0,2).toUpperCase()
+        const isActive = name === currentAgent
+        return `
+          <button class="agent-btn" onclick="selectAgent('${name}')"
+                  style="${isActive ? 'border-color:var(--accent);background:rgba(124,106,247,.08)' : ''}">
+            <div class="agent-btn-avatar">${initials}</div>
+            <div>
+              <div class="agent-btn-name">${name} ${isActive ? '✓' : ''}</div>
+              <div class="agent-btn-status ${hasKey ? 'ok' : 'warn'}">
+                ${hasKey ? '✓ API key configured' : '⚠ No key — contact manager'}
+              </div>
+            </div>
+          </button>`
+      }).join('')
+    }
+
+    function selectAgent(name) {
+      currentAgent = name
+      localStorage.setItem('cb_agent', name)
+      updatePill(name)
+      document.getElementById('agentModal').classList.add('hidden')
+      // Re-check generate button state
+      checkReady()
+    }
+
+    function updatePill(name) {
+      document.getElementById('pillAvatar').textContent = (name || '?').slice(0,2).toUpperCase()
+      document.getElementById('pillName').textContent   = name || 'Select Agent'
+    }
+
+    // ── File handling ──────────────────────────────────────────────────────────
+    function onFileSelected(file) {
+      if (!file) return
+      selectedFile = file
+      document.getElementById('uploadZone').classList.add('has-file')
+      document.getElementById('uploadIcon').textContent   = '✅'
+      document.getElementById('uploadTitle').textContent  = 'File selected'
+      document.getElementById('uploadFileName').textContent = file.name
+      document.getElementById('errorBox').classList.remove('show')
+      checkReady()
+    }
+
+    function onDragOver(e) {
+      e.preventDefault()
+      document.getElementById('uploadZone').classList.add('drag')
+    }
+    function onDragLeave(e) {
+      document.getElementById('uploadZone').classList.remove('drag')
+    }
+    function onDrop(e) {
+      e.preventDefault()
+      document.getElementById('uploadZone').classList.remove('drag')
+      const file = e.dataTransfer.files[0]
+      if (file) onFileSelected(file)
+    }
+
+    function checkReady() {
+      const hasFile  = !!selectedFile
+      const hasAgent = !!(currentAgent && agentList[currentAgent]?.gemini?.trim())
+      const noWarn   = document.getElementById('noAgentWarn')
+      const btn      = document.getElementById('generateBtn')
+
+      if (!currentAgent) {
+        noWarn.classList.add('show')
+      } else if (!agentList[currentAgent]?.gemini?.trim()) {
+        noWarn.classList.add('show')
+        noWarn.innerHTML = `⚠ <strong>${currentAgent}</strong> has no Gemini key. <a href="/keys" style="color:var(--yellow);text-decoration:underline" target="_blank">Add key at /keys</a>`
+      } else {
+        noWarn.classList.remove('show')
       }
 
-      if (!geminiKey) {
-        alert('Gemini API Key is required');
-        return;
+      btn.disabled = !(hasFile && hasAgent)
+    }
+
+    // ── Steps update ───────────────────────────────────────────────────────────
+    function setStep(n) {
+      for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById(`step${i}`)
+        el.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '')
+        el.querySelector('.step-num').textContent = i < n ? '✓' : i
       }
+    }
+
+    // ── Generate ───────────────────────────────────────────────────────────────
+    async function generate() {
+      if (!selectedFile || !currentAgent) return
+
+      const btn   = document.getElementById('generateBtn')
+      const prog  = document.getElementById('progressWrap')
+      const fill  = document.getElementById('progressFill')
+      const label = document.getElementById('progressLabel')
+      const errBox= document.getElementById('errorBox')
+      const model = document.getElementById('modelSelect').value
+
+      btn.disabled = true
+      errBox.classList.remove('show')
+      document.getElementById('reportWrap').classList.remove('show')
+      prog.classList.add('show')
+      setStep(2)
+
+      // Animate progress
+      let pct = 5
+      fill.style.width = pct + '%'
+      label.textContent = 'Uploading audio…'
+      const ticker = setInterval(() => {
+        if (pct < 85) { pct += Math.random() * 3; fill.style.width = pct + '%' }
+        if (pct > 30 && pct < 60) label.textContent = 'Transcribing with AI…'
+        if (pct >= 60) label.textContent = 'Analyzing call intelligence…'
+      }, 800)
 
       try {
-        const res = await fetch('/api/agent-keys', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            agent: agentName,
-            gemini: geminiKey,
-            sarvam: sarvamKey,
-            speechmatics: speechmaticsKey
-          })
-        });
+        const fd = new FormData()
+        fd.append('audio', selectedFile)
+        fd.append('transcription_model', model)
+        fd.append('agent_id', currentAgent)  // ← key! resolved server-side
 
-        const data = await res.json();
-        if (data.success) {
-          alert(`✓ Keys saved for ${agentName}`);
-          closeApiKeyModal();
-          populateAgentDropdown();
-        } else {
-          alert('Error: ' + (data.error || 'Failed to save keys'));
+        const res  = await fetch('/api/analyze', { method: 'POST', body: fd })
+        const data = await res.json()
+
+        clearInterval(ticker)
+
+        if (!res.ok || data.error) {
+          fill.style.width = '100%'
+          prog.classList.remove('show')
+          errBox.textContent = data.error || `Server error ${res.status}`
+          errBox.classList.add('show')
+          setStep(1)
+          btn.disabled = false
+          return
         }
-      } catch (error) {
-        console.error('Save error:', error);
-        alert('Failed to save keys: ' + error.message);
+
+        fill.style.width = '100%'
+        setTimeout(() => { prog.classList.remove('show'); }, 500)
+        setStep(3)
+        renderReport(data, currentAgent)
+
+      } catch(e) {
+        clearInterval(ticker)
+        prog.classList.remove('show')
+        errBox.textContent = 'Network error: ' + e.message
+        errBox.classList.add('show')
+        setStep(1)
+        btn.disabled = false
       }
     }
 
-    // Open API Key Modal
-    function openApiKeyModal() {
-      const modal = document.getElementById('apiKeyModal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        populateAgentDropdown();
-        clearAllKeyInputs();
-      }
+    // ── Render report ──────────────────────────────────────────────────────────
+    function renderReport(data, agentName) {
+      const r = data.report || data
+      const wrap = document.getElementById('reportWrap')
+      const grid = document.getElementById('reportGrid')
+
+      document.getElementById('reportAgentTag').textContent = '👤 ' + agentName
+
+      const tone = r.sentiment?.overall_tone || ''
+      const toneClass = 'tone-' + (tone.split('/')[0].trim() || 'Neutral')
+
+      const redAlerts = (r.red_alerts || []).filter(a => a && !a.startsWith('CRITICAL: List'))
+      const redFlags  = (r.red_flags  || []).filter(f => f && f.trim())
+
+      grid.innerHTML = `
+
+        <!-- Overview row -->
+        <div class="kv-grid">
+          <div class="kv-item"><div class="kv-label">Purpose</div><div class="kv-value">${r.call_overview?.purpose || '—'}</div></div>
+          <div class="kv-item"><div class="kv-label">Outcome</div><div class="kv-value">${r.call_overview?.outcome || '—'}</div></div>
+          <div class="kv-item"><div class="kv-label">Language</div><div class="kv-value">${r.call_language || '—'}</div></div>
+          <div class="kv-item"><div class="kv-label">Duration</div><div class="kv-value">${r.call_overview?.duration_estimate || '—'}</div></div>
+        </div>
+
+        <!-- Sentiment -->
+        <div class="report-section">
+          <div class="report-section-title">🎭 Sentiment</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <span class="tone-chip ${toneClass}">${tone || 'Unknown'}</span>
+            <span style="font-size:12px;color:var(--muted)">${r.participants?.person_a || 'Person A'}: <strong style="color:var(--text)">${r.sentiment?.person_a_mood || '—'}</strong></span>
+            <span style="font-size:12px;color:var(--muted)">${r.participants?.person_b || 'Person B'}: <strong style="color:var(--text)">${r.sentiment?.person_b_mood || '—'}</strong></span>
+          </div>
+          ${r.sentiment?.notable_moments && r.sentiment.notable_moments !== 'null'
+            ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">${r.sentiment.notable_moments}</div>` : ''}
+        </div>
+
+        <!-- Summary -->
+        <div class="report-section">
+          <div class="report-section-title">📋 Summary</div>
+          <div class="report-text">${r.full_summary || '—'}</div>
+        </div>
+
+        <!-- Red Alerts -->
+        ${redAlerts.length ? `
+        <div class="report-section">
+          <div class="report-section-title" style="color:var(--red)">🚨 Red Alerts</div>
+          ${redAlerts.map(a => `<div class="alert-item">⚠ ${a}</div>`).join('')}
+        </div>` : ''}
+
+        <!-- Red Flags -->
+        ${redFlags.length ? `
+        <div class="report-section">
+          <div class="report-section-title" style="color:var(--yellow)">🚩 Red Flags</div>
+          ${redFlags.map(f => `<div class="flag-item">${f}</div>`).join('')}
+        </div>` : ''}
+
+        <!-- Action Items -->
+        ${(r.action_items||[]).length ? `
+        <div class="report-section">
+          <div class="report-section-title">✅ Action Items</div>
+          ${(r.action_items||[]).map(a => `
+            <div class="action-row">
+              <span class="urgency-badge urgency-${(a.urgency||'Whenever').split('/')[0].trim()}">${a.urgency||'—'}</span>
+              <div><div style="font-size:12px;color:var(--text)">${a.action||'—'}</div>
+                   <div style="font-size:11px;color:var(--muted);margin-top:2px">Owner: ${a.owner||'—'}</div></div>
+            </div>`).join('')}
+        </div>` : ''}
+
+        <!-- Commitments -->
+        ${(r.commitments||[]).length ? `
+        <div class="report-section">
+          <div class="report-section-title">🤝 Commitments</div>
+          ${(r.commitments||[]).map(c => `
+            <div class="commit-row">
+              <span class="commit-by">${c.by||'—'}</span>
+              <span class="commit-text">${c.commitment||'—'}</span>
+            </div>`).join('')}
+        </div>` : ''}
+
+        <!-- Key Points -->
+        ${(r.key_points||[]).length ? `
+        <div class="report-section">
+          <div class="report-section-title">💡 Key Points</div>
+          <div class="pill-list">
+            ${(r.key_points||[]).map(p => `<span class="pill">${p}</span>`).join('')}
+          </div>
+        </div>` : ''}
+
+        <!-- Topics -->
+        ${(r.topics_mentioned||[]).length ? `
+        <div class="report-section">
+          <div class="report-section-title">🏷 Topics Mentioned</div>
+          <div class="pill-list">
+            ${(r.topics_mentioned||[]).map(t => `<span class="pill">${t}</span>`).join('')}
+          </div>
+        </div>` : ''}
+
+        <!-- Transcript -->
+        ${data.transcript ? `
+        <div class="report-section">
+          <div class="report-section-title">📝 Transcript</div>
+          <button class="transcript-toggle" onclick="toggleTranscript(this)">▶ Show Transcript</button>
+          <div class="transcript-text" id="transcriptText">${data.transcript.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        </div>` : ''}
+      `
+
+      wrap.classList.add('show')
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
 
-    // Close API Key Modal
-    function closeApiKeyModal() {
-      const modal = document.getElementById('apiKeyModal');
-      if (modal) {
-        modal.classList.add('hidden');
-      }
+    function toggleTranscript(btn) {
+      const t = document.getElementById('transcriptText')
+      t.classList.toggle('show')
+      btn.textContent = t.classList.contains('show') ? '▼ Hide Transcript' : '▶ Show Transcript'
     }
 
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', () => {
-      populateAgentDropdown();
-      
-      // Wire up original gear settings icon to open the new modal
-      const settingsBtn = document.getElementById('settings-btn');
-      if (settingsBtn) {
-        // Clone to remove old listener, if any
-        const newSettingsBtn = settingsBtn.cloneNode(true);
-        settingsBtn.parentNode.replaceChild(newSettingsBtn, settingsBtn);
-        newSettingsBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          openApiKeyModal();
-        });
-      }
-    });
-    </script>
-
-
-    <!-- Footer -->
-    <footer class="footer">
-        <p>CallAnalyzer AI &mdash; Unified transcription + analysis powered by Google Gemini 2.5 Flash</p>
-    </footer>
-
-    <script src="/static/js/app.js"></script>
+    // ── Init ───────────────────────────────────────────────────────────────────
+    boot()
+  </script>
 </body>
 </html>
-
